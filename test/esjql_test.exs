@@ -178,4 +178,10 @@ defmodule EsjqlTest do
     assert Esjql.flatten_properties(mapping) ==
       [%{name: "person.*", type: "dynamic"}]
   end
+
+  test "flatten non-indexed property" do
+    mapping = %{"properties" => %{"person" => %{"index" => false}}}
+    assert Esjql.flatten_properties(mapping) ==
+      []
+  end
 end
