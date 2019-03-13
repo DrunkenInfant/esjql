@@ -35,10 +35,16 @@ defmodule Esjql do
   def flatten_properties(%{"properties" => mapping}) do
     mapping
     |> Enum.flat_map(fn {prop, desc} -> case desc do
+      %{"dynamic" => true} -> [%{name: "#{prop}.*", type: "dynamic"} | flatten_properties(desc)
+                                                             |> Enum.map(&Map.update!(&1, :name, fn n -> "#{prop}.#{n}" end))]
       %{"type" => type} when type in ["object", "nested"] -> flatten_properties(desc)
                                                              |> Enum.map(&Map.update!(&1, :name, fn n -> "#{prop}.#{n}" end))
       %{"type" => type} -> [%{name: prop, type: type}]
     end end)
+  end
+
+  def flatten_properties(%{}) do
+    []
   end
 
   defp parse_filters(filters) do

@@ -166,4 +166,16 @@ defmodule EsjqlTest do
     assert Esjql.flatten_properties(mapping) ==
       [%{name: "person.age", type: "integer"}, %{name: "person.name", type: "keyword"}]
   end
+
+  test "flatten dynamic object mapping" do
+    mapping = %{"properties" => %{"person" => %{"type" => "object", "dynamic" => true, "properties" => %{"name" => %{"type" => "keyword"}, "age" => %{ "type" => "integer" }}}}}
+    assert Esjql.flatten_properties(mapping) ==
+      [%{name: "person.*", type: "dynamic"}, %{name: "person.age", type: "integer"}, %{name: "person.name", type: "keyword"}]
+  end
+
+  test "flatten empty dynamic object mapping" do
+    mapping = %{"properties" => %{"person" => %{"type" => "object", "dynamic" => true}}}
+    assert Esjql.flatten_properties(mapping) ==
+      [%{name: "person.*", type: "dynamic"}]
+  end
 end
