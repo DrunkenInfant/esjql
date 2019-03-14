@@ -22,7 +22,7 @@ defmodule Esjql do
   """
   def build_filters(%{"properties" => mapping}, filters) do
     parsed = parse_filters(filters)
-    with {:ok, es_filter} <- Enum.map(parsed, &build_filter(mapping, &1)) |> reduce_results() do
+    with {:ok, es_filter} <- Enum.map(parsed, &build_filter(mapping, &1)) |> Esjql.Utils.reduce_results() do
       {:ok, %{query: %{bool: %{
         filter: Enum.concat(es_filter)
       }}}}
@@ -118,7 +118,7 @@ defmodule Esjql do
   end
 
   defp build_filter_typed(%{"type" => "nested", "properties" => mapping}, %{prop: prop, nested: nested}) do
-    case Enum.map(nested, &build_filter(mapping, &1)) |> reduce_results() do
+    case Enum.map(nested, &build_filter(mapping, &1)) |> Esjql.Utils.reduce_results() do
       {:ok, nested_filter} -> {:ok, [%{nested: %{
         path: prop,
         query: %{bool: %{filter: Enum.concat(nested_filter)}}
@@ -129,7 +129,7 @@ defmodule Esjql do
   end
 
   defp build_filter_typed(%{"type" => "object", "properties" => mapping}, %{nested: nested}) do
-    case Enum.map(nested, &build_filter(mapping, &1)) |> reduce_results() do
+    case Enum.map(nested, &build_filter(mapping, &1)) |> Esjql.Utils.reduce_results() do
       {:ok, filters} -> {:ok, Enum.concat(filters)}
       {:error, errors} -> {:error, Enum.concat(errors)}
       err -> err
@@ -149,7 +149,7 @@ defmodule Esjql do
     do: {:ok, [term(prop, value)]}
 
   defp build_filter_typed(%{"type" => num_type}, %{prop: prop, value: values}) when num_type in ["long", "integer", "short", "byte", "double", "float", "half_float", "scaled_float"] do
-    with {:ok, ops} <- values |> Enum.map(&parse_numeric(&1, num_type)) |> reduce_results() do
+    with {:ok, ops} <- values |> Enum.map(&parse_numeric(&1, num_type)) |> Esjql.Utils.reduce_results() do
       case Enum.into(ops, %{}) do
         %{eq: val} -> {:ok, [term(prop, val)]}
         ops -> {:ok, [range(prop, ops)]}
@@ -161,7 +161,7 @@ defmodule Esjql do
   end
 
   defp build_filter_typed(%{"type" => "date"}, %{prop: prop, value: values}) do
-    with {:ok, ops} <- values |> Enum.map(&parse_date(&1)) |> reduce_results() do
+    with {:ok, ops} <- values |> Enum.map(&parse_date(&1)) |> Esjql.Utils.reduce_results() do
       case Enum.into(ops, %{}) do
         %{eq: val} -> {:ok, [term(prop, val)]}
         ops -> {:ok, [range(prop, ops)]}
@@ -210,13 +210,4 @@ defmodule Esjql do
   defp term(prop, value), do: %{term: %{prop => value}}
   defp prefix(prop, value), do: %{prefix: %{prop => value}}
   defp range(prop, value), do: %{range: %{prop => value}}
-
-  defp reduce_results(results) do
-    Enum.reduce(results, {:ok, []}, fn item, res -> case {res, item} do
-      {{:ok, res}, {:ok, item}} -> {:ok, [item | res]}
-      {{:error, errors}, {:error, error}} -> {:error, [error | errors]}
-      {_, {:error, error}} -> {:error, [error]}
-      {res, _} -> res
-    end end)
-  end
 end
