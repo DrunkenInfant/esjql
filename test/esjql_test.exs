@@ -142,46 +142,4 @@ defmodule EsjqlTest do
     assert Esjql.build_filters(mapping, filter) ==
       {:error, ["Unknown mapping for 'person.age'"]}
   end
-
-  test "flatten simple mapping" do
-    mapping = %{"properties" => %{"age" => %{ "type" => "integer" }}}
-    assert Esjql.flatten_properties(mapping) ==
-      [%{name: "age", type: "integer"}]
-  end
-
-  test "flatten multiple mappings" do
-    mapping = %{"properties" => %{"name" => %{"type" => "keyword"}, "age" => %{ "type" => "integer" }}}
-    assert Esjql.flatten_properties(mapping) ==
-      [%{name: "age", type: "integer"}, %{name: "name", type: "keyword"}]
-  end
-
-  test "flatten nested mappings" do
-    mapping = %{"properties" => %{"person" => %{"type" => "nested", "properties" => %{"name" => %{"type" => "keyword"}, "age" => %{ "type" => "integer" }}}}}
-    assert Esjql.flatten_properties(mapping) ==
-      [%{name: "person.age", type: "integer"}, %{name: "person.name", type: "keyword"}]
-  end
-
-  test "flatten object mappings" do
-    mapping = %{"properties" => %{"person" => %{"type" => "object", "properties" => %{"name" => %{"type" => "keyword"}, "age" => %{ "type" => "integer" }}}}}
-    assert Esjql.flatten_properties(mapping) ==
-      [%{name: "person.age", type: "integer"}, %{name: "person.name", type: "keyword"}]
-  end
-
-  test "flatten dynamic object mapping" do
-    mapping = %{"properties" => %{"person" => %{"type" => "object", "dynamic" => true, "properties" => %{"name" => %{"type" => "keyword"}, "age" => %{ "type" => "integer" }}}}}
-    assert Esjql.flatten_properties(mapping) ==
-      [%{name: "person.*", type: "dynamic"}, %{name: "person.age", type: "integer"}, %{name: "person.name", type: "keyword"}]
-  end
-
-  test "flatten empty dynamic object mapping" do
-    mapping = %{"properties" => %{"person" => %{"type" => "object", "dynamic" => true}}}
-    assert Esjql.flatten_properties(mapping) ==
-      [%{name: "person.*", type: "dynamic"}]
-  end
-
-  test "flatten non-indexed property" do
-    mapping = %{"properties" => %{"person" => %{"index" => false}}}
-    assert Esjql.flatten_properties(mapping) ==
-      []
-  end
 end

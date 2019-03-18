@@ -32,41 +32,6 @@ defmodule Esjql do
     end
   end
 
-  @doc """
-  Flatten index mappings to list of properties
-
-  ## Examples
-      iex> Esjql.flatten_properties(%{"properties" => %{
-      ...>   "person" => %{
-      ...>     "type" => "object",
-      ...>     "dynamic" => true,
-      ...>     "properties" => %{"name" => %{"type" => "keyword"}, "age" => %{ "type" => "integer" }}
-      ...>   },
-      ...>   "toughness" => %{"type" => "integer"}
-      ...> }})
-      [
-          %{name: "person.*", type: "dynamic"},
-          %{name: "person.age", type: "integer"},
-          %{name: "person.name", type: "keyword"},
-          %{name: "toughness", type: "integer"}
-      ]
-
-  """
-  def flatten_properties(%{"properties" => mapping}) do
-    mapping
-    |> Enum.flat_map(fn {prop, desc} -> case desc do
-      %{"index" => false} -> []
-      %{"dynamic" => true} -> [%{name: "#{prop}.*", type: "dynamic"} | flatten_properties(desc)
-                                                             |> Enum.map(&Map.update!(&1, :name, fn n -> "#{prop}.#{n}" end))]
-      %{"type" => type} when type in ["object", "nested"] -> flatten_properties(desc)
-                                                             |> Enum.map(&Map.update!(&1, :name, fn n -> "#{prop}.#{n}" end))
-      %{"type" => type} -> [%{name: prop, type: type}]
-    end end)
-  end
-
-  def flatten_properties(%{}) do
-    []
-  end
 
   defp parse_filters(filters) do
     filters
